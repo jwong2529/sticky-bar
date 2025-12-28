@@ -12,9 +12,41 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
     var menu: NSMenu!
+    var welcomeWindow: NSWindow?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         
+        let defaults = UserDefaults.standard
+        let hasLaunchedKey = "hasLaunchedBefore"
+//        UserDefaults.standard.removeObject(forKey: "hasLaunchedBefore")
+
+        let isFirstLaunch = !defaults.bool(forKey: hasLaunchedKey)
+        if isFirstLaunch {
+            defaults.set(true, forKey: hasLaunchedKey)
+            
+            // Temporarily show dock icon
+            NSApp.setActivationPolicy(.regular)
+            
+            // Show welcome window
+            let welcomeView = WelcomeView()
+                .frame(width: 400, height: 250)
+            
+            welcomeWindow = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 250),
+                styleMask: [.titled, .closable],
+                backing: .buffered,
+                defer: false
+            )
+            welcomeWindow?.center()
+            welcomeWindow?.contentView = NSHostingView(rootView: welcomeView)
+            welcomeWindow?.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            
+            // Hide dock again after showing window
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
         // Popover
         popover = NSPopover()
         popover.contentSize = NSSize(width: 300, height: 200)
