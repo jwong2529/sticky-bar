@@ -4,4 +4,4 @@
 
 Lightweight menu bar app for quick notes on macOS. Auto-saves notes locally and stays in menu bar.
 
-![Screenshot](readme_assets/screenshot.jpg)
+<img src="readme_assets/screenshot.jpg" alt="Screenshot" width="400">
