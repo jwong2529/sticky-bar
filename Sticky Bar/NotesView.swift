@@ -14,30 +14,61 @@ struct NotesView: View {
     @State private var textView: NSTextView?
     
     @FocusState private var focused: Bool
-    @State private var hoveringButton = false
+    @State private var hoveringClear = false
+    @State private var hoveringCopy = false
+    @State private var didClear = false
     @State private var didCopy = false
-    
+        
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             
             RichTextView(attributedText: $attributedNotes, textView: $textView)
                 .scrollIndicators(.hidden)
                 .padding(.trailing, 2)
-                .padding(.bottom, 2)
+                .padding(.bottom, 26)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             
-            // Copy button
-            Button(action: copyToClipboard) {
-                Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                    .font(.system(size: 11))
-                    .foregroundStyle(didCopy ? .green : .secondary)
-                    .animation(.easeInOut(duration: 0.15), value: didCopy)
+            // Clear
+            VStack {
+                Spacer()
+                HStack {
+                    Button(action: clearNotes) {
+                        Image(systemName: didClear ? "checkmark" : "trash")
+                            .font(.system(size: 11))
+                            .foregroundStyle(didClear ? .green : .secondary)
+                            .animation(.easeInOut(duration: 0.15), value: didClear)
+                            .help("Clear notes (⌘⇧⌦)")
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(.delete, modifiers: [.command, .shift])
+                    .opacity(hoveringClear ? 1 : 0.15)
+                    .onHover { hoveringClear = $0 }
+
+                    Spacer()
+                }
+                .padding(10)
             }
-            .buttonStyle(.plain)
-            .padding(10)
-            .opacity(hoveringButton ? 1 : 0.15)
-            .keyboardShortcut("c", modifiers: .command)
-            .onHover { hoveringButton = $0 }
+
+            // Copy
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+
+                    Button(action: copyToClipboard) {
+                        Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 11))
+                            .foregroundStyle(didCopy ? .green : .secondary)
+                            .animation(.easeInOut(duration: 0.15), value: didCopy)
+                            .help("Copy notes (⌘C)")
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut("c", modifiers: .command)
+                    .opacity(hoveringCopy ? 1 : 0.15)
+                    .onHover { hoveringCopy = $0 }
+                }
+                .padding(10)
+            }
             
         }
         .padding(4)
@@ -114,6 +145,17 @@ struct NotesView: View {
         didCopy = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             didCopy = false
+        }
+    }
+    
+    private func clearNotes() {
+        attributedNotes = NSAttributedString()
+        notesData = Data()
+        textView?.textStorage?.setAttributedString(NSAttributedString())
+        
+        didClear = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            didClear = false
         }
     }
     
