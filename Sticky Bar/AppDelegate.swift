@@ -18,8 +18,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         let defaults = UserDefaults.standard
         let hasLaunchedKey = "hasLaunchedBefore"
-//        UserDefaults.standard.removeObject(forKey: "hasLaunchedBefore")
-
+        //        UserDefaults.standard.removeObject(forKey: "hasLaunchedBefore")
+        
         let isFirstLaunch = !defaults.bool(forKey: hasLaunchedKey)
         if isFirstLaunch {
             defaults.set(true, forKey: hasLaunchedKey)
@@ -74,7 +74,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func statusBarButtonClicked(_ sender: NSStatusBarButton) {
         guard let event = NSApp.currentEvent, let button = statusItem.button else { return }
-
+        
         if event.type == .rightMouseUp {
             // Temporarily assign the menu
             statusItem.menu = menu

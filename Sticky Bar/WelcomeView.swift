@@ -25,8 +25,8 @@ struct WelcomeView: View {
                 Right-click the icon to Quit the app.
                 Enjoy!
                 """)
-                .multilineTextAlignment(.center)
-                .lineLimit(nil)
+            .multilineTextAlignment(.center)
+            .lineLimit(nil)
             
         }
         .frame(width: 400, height: 300)
