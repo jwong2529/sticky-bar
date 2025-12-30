@@ -14,20 +14,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var menu: NSMenu!
     var welcomeWindow: NSWindow?
     
+    var eventMonitor: EventMonitor?
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
+        
+        // Listens for clicks outside the app to close the popover
+        eventMonitor = EventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            if let strongSelf = self, strongSelf.popover.isShown {
+                strongSelf.closePopover(sender: event)
+            }
+        }
         
         let defaults = UserDefaults.standard
         let hasLaunchedKey = "hasLaunchedBefore"
-        //        UserDefaults.standard.removeObject(forKey: "hasLaunchedBefore")
         
         let isFirstLaunch = !defaults.bool(forKey: hasLaunchedKey)
         if isFirstLaunch {
             defaults.set(true, forKey: hasLaunchedKey)
             
-            // Temporarily show dock icon
             NSApp.setActivationPolicy(.regular)
             
-            // Show welcome window
             let welcomeView = WelcomeView()
                 .frame(width: 400, height: 250)
             
@@ -42,11 +48,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             welcomeWindow?.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             
-            // Hide dock again after showing window
             DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
                 NSApp.setActivationPolicy(.accessory)
             }
         }
+        
         // Popover
         popover = NSPopover()
         popover.contentSize = NSSize(width: 300, height: 200)
@@ -60,7 +66,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let image = NSImage(named: "MenuBarIcon")
             image?.isTemplate = true
             button.image = image
-            button.action = #selector(togglePopover)
             
             button.target = self
             button.action = #selector(statusBarButtonClicked(_:))
@@ -69,39 +74,73 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Quit Sticky Bar", action: #selector(quitApp), keyEquivalent: "q"))
-        
     }
     
     @objc func statusBarButtonClicked(_ sender: NSStatusBarButton) {
-        guard let event = NSApp.currentEvent, let button = statusItem.button else { return }
+        guard let event = NSApp.currentEvent else { return }
         
         if event.type == .rightMouseUp {
-            // Temporarily assign the menu
             statusItem.menu = menu
-            // Show the menu programmatically at the button
-            button.performClick(nil)
-            // Remove it immediately so left-click still works
+            statusItem.button?.performClick(nil)
+            
             DispatchQueue.main.async {
                 self.statusItem.menu = nil
             }
         } else {
-            // Left click → toggle popover
-            togglePopover()
+            togglePopover(sender)
         }
     }
     
-    @objc func togglePopover() {
-        guard let button = statusItem.button else { return }
+    @objc func togglePopover(_ sender: AnyObject?) {
         if popover.isShown {
-            popover.performClose(nil)
+            closePopover(sender: sender)
         } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            popover.contentViewController?.view.window?.becomeKey()
+            showPopover(sender: sender)
         }
+    }
+    
+    func showPopover(sender: AnyObject?) {
+        guard let button = statusItem.button else { return }
+        
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.window?.becomeKey()
+        
+        eventMonitor?.start()
+    }
+    
+    func closePopover(sender: AnyObject?) {
+        popover.performClose(sender)
+        
+        eventMonitor?.stop()
     }
     
     @objc func quitApp() {
         NSApp.terminate(nil)
     }
-    
+}
+
+class EventMonitor {
+    private var monitor: Any?
+    private let mask: NSEvent.EventTypeMask
+    private let handler: (NSEvent?) -> Void
+
+    public init(mask: NSEvent.EventTypeMask, handler: @escaping (NSEvent?) -> Void) {
+        self.mask = mask
+        self.handler = handler
+    }
+
+    deinit {
+        stop()
+    }
+
+    public func start() {
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: handler)
+    }
+
+    public func stop() {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+    }
 }

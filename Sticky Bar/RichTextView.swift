@@ -58,7 +58,13 @@ struct RichTextView: NSViewRepresentable {
         guard let tv = scrollView.documentView as? NSTextView else { return }
         
         if tv.attributedString() != attributedText {
+            let selectedRange = tv.selectedRange()
+            
             tv.textStorage?.setAttributedString(attributedText)
+            
+            if selectedRange.location + selectedRange.length <= tv.string.count {
+                tv.setSelectedRange(selectedRange)
+            }
         }
     }
     
@@ -70,17 +76,40 @@ struct RichTextView: NSViewRepresentable {
         }
         
         // new text should be default style
-        func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldAttributes: [String : Any] = [:], toAttributes newAttributes: [NSAttributedString.Key : Any] = [:]) -> [NSAttributedString.Key : Any] {
-            var fixedAttributes = newAttributes
-            fixedAttributes[.font] = NSFont.systemFont(ofSize: 13)
-            fixedAttributes[.foregroundColor] = NSColor.labelColor
-            fixedAttributes[.backgroundColor] = nil
-            fixedAttributes[.underlineStyle] = nil
-            return fixedAttributes
-        }
+//        func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldAttributes: [String : Any] = [:], toAttributes newAttributes: [NSAttributedString.Key : Any] = [:]) -> [NSAttributedString.Key : Any] {
+//            var fixedAttributes = newAttributes
+//            fixedAttributes[.font] = NSFont.systemFont(ofSize: 13)
+//            fixedAttributes[.foregroundColor] = NSColor.labelColor
+//            fixedAttributes[.backgroundColor] = nil
+//            fixedAttributes[.underlineStyle] = nil
+//            return fixedAttributes
+//        }
         
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
+            parent.attributedText = tv.attributedString()
+        }
+        
+        func textView(_ view: NSTextView, menu: NSMenu, for event: NSEvent, at charIndex: Int) -> NSMenu? {
+            menu.addItem(NSMenuItem.separator())
+            let item = NSMenuItem(title: "Reset to Default Style", action: #selector(resetStyle), keyEquivalent: "")
+            item.target = self
+            menu.addItem(item)
+            return menu
+        }
+        
+        @objc func resetStyle() {
+            guard let tv = parent.textView else { return }
+            let range = tv.selectedRange()
+            guard range.length > 0 else { return }
+            
+            tv.textStorage?.beginEditing()
+            tv.textStorage?.setAttributes([
+                .font: NSFont.systemFont(ofSize: 13),
+                .foregroundColor: NSColor.labelColor
+            ], range: range)
+            tv.textStorage?.endEditing()
+            
             parent.attributedText = tv.attributedString()
         }
     }
