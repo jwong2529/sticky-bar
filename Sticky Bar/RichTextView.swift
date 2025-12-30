@@ -69,6 +69,16 @@ struct RichTextView: NSViewRepresentable {
             self.parent = parent
         }
         
+        // new text should be default style
+        func textView(_ textView: NSTextView, shouldChangeTypingAttributes oldAttributes: [String : Any] = [:], toAttributes newAttributes: [NSAttributedString.Key : Any] = [:]) -> [NSAttributedString.Key : Any] {
+            var fixedAttributes = newAttributes
+            fixedAttributes[.font] = NSFont.systemFont(ofSize: 13)
+            fixedAttributes[.foregroundColor] = NSColor.labelColor
+            fixedAttributes[.backgroundColor] = nil
+            fixedAttributes[.underlineStyle] = nil
+            return fixedAttributes
+        }
+        
         func textDidChange(_ notification: Notification) {
             guard let tv = notification.object as? NSTextView else { return }
             parent.attributedText = tv.attributedString()
